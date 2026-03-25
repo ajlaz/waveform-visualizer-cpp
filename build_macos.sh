@@ -4,6 +4,12 @@ cd "$(dirname "$0")"
 
 echo "=== Waveform Visualizer — macOS build ==="
 
+# clean previous executable if it exists
+if [ -f "visualizer" ]; then
+    echo "cleaning previous executable..."
+    rm "visualizer"
+fi
+
 # ---------------------------------------------------------------------------
 # Check for Homebrew dependencies
 # ---------------------------------------------------------------------------

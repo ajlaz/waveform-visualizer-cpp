@@ -20,6 +20,7 @@ bool SpectrumVisualizer::init(const std::string &shaderDir, const VisualizerColo
                       shaderDir + "/spectrum.frag"))
         return false;
     quad_.init();
+    if (!textRenderer_.init(shaderDir)) return false;
     colors_ = scheme.spectrum;
     return true;
 }
@@ -28,6 +29,7 @@ void SpectrumVisualizer::onResize(int w, int h)
 {
     width_ = w;
     height_ = h;
+    textRenderer_.resize(w, h);
     smoothed_.assign(w, DB_MIN);
     specTex_.init(w);
 }
@@ -154,6 +156,27 @@ void SpectrumVisualizer::render()
     shader_.setVec3("uTipColor", colors_.tip.r, colors_.tip.g, colors_.tip.b);
     shader_.setFloat("uTipWidth", 1.5f / std::max(1, height_));
     quad_.draw();
+
+    // Draw frequency labels along the bottom
+    struct FreqLabel { float freq; const char* label; };
+    static const FreqLabel kLabels[] = {
+        {50.0f,"50"},{100.0f,"100"},{200.0f,"200"},
+        {500.0f,"500"},{1000.0f,"1k"},{2000.0f,"2k"},{5000.0f,"5k"},
+        {10000.0f,"10k"}
+    };
+    const float logMin = std::log10(FREQ_MIN);
+    const float logMax = std::log10(FREQ_MAX);
+    const float labelR = colors_.tip.r * 0.7f;
+    const float labelG = colors_.tip.g * 0.7f;
+    const float labelB = colors_.tip.b * 0.7f;
+    const float scale  = (height_ >= 400) ? 1.5f : 1.0f;
+    const int   labelY = height_ - static_cast<int>(10.0f * scale) - 2;
+    for (const auto& lbl : kLabels) {
+        const float t  = (std::log10(lbl.freq) - logMin) / (logMax - logMin);
+        const int   px = static_cast<int>(t * (width_ - 1));
+        textRenderer_.drawCentered(lbl.label, px, labelY,
+                                   labelR, labelG, labelB, scale);
+    }
 }
 
 SpectrumVisualizer::~SpectrumVisualizer() = default;

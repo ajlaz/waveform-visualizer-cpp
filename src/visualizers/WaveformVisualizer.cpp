@@ -56,7 +56,7 @@ void WaveformVisualizer::update(const AnalysisFrame &frame)
             std::max(std::abs(minHigh), std::abs(maxHigh))};
 
         const float ampMax = std::max({ampRaw[0], ampRaw[1], ampRaw[2], 1e-4f});
-        const float desiredGain = std::clamp(targetFill / ampMax, 0.5f, 3.0f);
+        const float desiredGain = std::clamp(targetFill / ampMax, 0.2f, 0.5f);
         const float attack = 0.05f;
         const float release = 0.30f;
         const float alpha = (desiredGain > autoGain_) ? attack : release;

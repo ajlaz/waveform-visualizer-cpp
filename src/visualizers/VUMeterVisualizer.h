@@ -2,6 +2,7 @@
 #include "Visualizer.h"
 #include "../render/ShaderProgram.h"
 #include "../render/GPUBuffer.h"
+#include "../render/TextRenderer.h"
 #include "../ColorSchemes.h"
 
 class VUMeterVisualizer : public Visualizer
@@ -19,6 +20,7 @@ public:
 private:
     ShaderProgram shader_;
     FullscreenQuad quad_;
+    TextRenderer textRenderer_;
 
     VUMeterColors colors_;
 

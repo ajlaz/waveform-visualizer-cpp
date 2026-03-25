@@ -2,6 +2,7 @@
 #include "Visualizer.h"
 #include "../render/ShaderProgram.h"
 #include "../render/GPUBuffer.h"
+#include "../render/TextRenderer.h"
 #include "../ColorSchemes.h"
 #include <vector>
 
@@ -24,6 +25,7 @@ private:
     ShaderProgram shader_;
     FullscreenQuad quad_;
     StreamTexture1D specTex_;
+    TextRenderer textRenderer_;
 
     SpectrumColors colors_;
 

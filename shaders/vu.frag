@@ -37,14 +37,15 @@ void main() {
     if (y < BAR_Y0 || y > BAR_Y1 || x < BAR_X0 || x > BAR_X1) {
         // Outside bar area: check for dB tick marks
         float col = uBackground.r;  // default background
-        float[5] marks = float[5](dbToBarX(-40.0), dbToBarX(-20.0),
+        float[6] marks = float[6](dbToBarX(-40.0), dbToBarX(-20.0),
                                   dbToBarX(-10.0), dbToBarX(-3.0),
-                                  dbToBarX(0.0));
+                                  dbToBarX(0.0),   dbToBarX(3.0));
         float barX = (x - BAR_X0) / BAR_W;
         bool  onTick = false;
-        for (int i = 0; i < 5; i++) {
+        for (int i = 0; i < 6; i++) {
             if (abs(barX - marks[i]) < 0.005 / BAR_W &&
-                y > BAR_Y0 - 0.05 && y < BAR_Y0)
+                y > BAR_Y0 - 0.05 && y < BAR_Y0 &&
+                x >= BAR_X0 && x <= BAR_X1)
                 onTick = true;
         }
         fragColor = onTick ? vec4(uTicks, 1.0) : vec4(bg, 1.0);

@@ -52,6 +52,7 @@ bool SpectrogramVisualizer::init(const std::string &shaderDir, const VisualizerC
                       shaderDir + "/spectrogram.frag"))
         return false;
     quad_.init();
+    if (!textRenderer_.init(shaderDir)) return false;
     colors_ = scheme.spectrogram;
     return true;
 }
@@ -60,6 +61,7 @@ void SpectrogramVisualizer::onResize(int w, int h)
 {
     width_ = w;
     height_ = h;
+    textRenderer_.resize(w, h);
     writeCol_ = 0;
     colBuf_.assign(h * 3, 0);
     scrollTex_.init(w, h, GL_RGB, GL_RGB, GL_UNSIGNED_BYTE);
@@ -119,6 +121,27 @@ void SpectrogramVisualizer::render()
     // Pass normalised write position so shader can offset UVs
     shader_.setFloat("uWriteCol", static_cast<float>(writeCol_) / width_);
     quad_.draw();
+
+    // Draw frequency labels on the left Y-axis
+    // Frequency maps to pixel row py = t*(height_-1) where t = log-scale [0,1]
+    // In screen top-left coords: screen_y = height_ - 1 - py
+    struct FreqLabel { float freq; const char* label; };
+    static const FreqLabel kLabels[] = {
+        {50.0f,"50"},{100.0f,"100"},{200.0f,"200"},
+        {500.0f,"500"},{1000.0f,"1k"},{2000.0f,"2k"},{5000.0f,"5k"},
+        {10000.0f,"10k"},{15000.0f,"15k"}
+    };
+    const float logMin = std::log10(FREQ_MIN);
+    const float logMax = std::log10(FREQ_MAX);
+    const float scale  = (height_ >= 400) ? 1.0f : 0.75f;
+    const float lr = 0.7f, lg = 0.7f, lb = 0.7f; // light gray
+    for (const auto& lbl : kLabels) {
+        const float t  = (std::log10(lbl.freq) - logMin) / (logMax - logMin);
+        const int   py = static_cast<int>(t * (height_ - 1));
+        const int   sy = height_ - 1 - py - static_cast<int>(4.0f * scale);
+        if (sy < 0 || sy >= height_) continue;
+        textRenderer_.draw(lbl.label, 3, sy, lr, lg, lb, scale);
+    }
 }
 
 SpectrogramVisualizer::~SpectrogramVisualizer() = default;

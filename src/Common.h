@@ -10,7 +10,7 @@ static constexpr int SAMPLE_RATE = 44100;
 static constexpr int FFT_SIZE = 8192;
 static constexpr int READ_SIZE = 512;
 static constexpr float FREQ_MIN = 20.0f;
-static constexpr float FREQ_MAX = 20000.0f;
+static constexpr float FREQ_MAX = 16000.0f;
 static constexpr float DB_MIN = -90.0f;
 static constexpr float DB_MAX = 0.0f;
 

@@ -55,6 +55,7 @@ set(SOURCES
     src/audio/AudioAnalyzer.cpp
     src/render/ShaderProgram.cpp
     src/render/GPUBuffer.cpp
+    src/render/TextRenderer.cpp
     src/render/Renderer.cpp
     src/render/PostProcessor.cpp
     src/visualizers/VisualizerManager.cpp
