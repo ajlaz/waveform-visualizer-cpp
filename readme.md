@@ -34,7 +34,7 @@ To capture system audio on macOS, you can use a virtual audio device like [Black
 3. The visualizer will capture the system audio.
 Make sure to select BlackHole2ch as the input device in the visualizer if it's not set as the default input.
 
-Upcoming features:
+## Upcoming features:
 - Support for Linux (Raspberry Pi 5)
 - Additional visualization modes and filters
 - Web interface for remote control
