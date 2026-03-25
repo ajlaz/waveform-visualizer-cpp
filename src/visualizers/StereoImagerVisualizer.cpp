@@ -66,8 +66,9 @@ void StereoImagerVisualizer::update(const AnalysisFrame &frame)
         const float mid  = (L + R) * 0.5f;
 
         // Map to [0,1] texture coords: side→X (right=more L), mid→Y (up=louder)
-        const float xn = std::clamp( side / SCALE * 0.5f + 0.5f, 0.0f, 1.0f);
-        const float yn = std::clamp(-mid  / SCALE * 0.5f + 0.5f, 0.0f, 1.0f);
+        const float xn =  side / SCALE * 0.5f + 0.5f;
+        const float yn = -mid  / SCALE * 0.5f + 0.5f;
+        if (xn < 0.0f || xn > 1.0f || yn < 0.0f || yn > 1.0f) continue;
 
         const int px = static_cast<int>(xn * (TEX_SIZE - 1));
         const int py = static_cast<int>(yn * (TEX_SIZE - 1));
