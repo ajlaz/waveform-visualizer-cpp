@@ -1,0 +1,40 @@
+{
+    "oscilloscope": {
+        "line": "#00D94D"
+    },
+    "spectrum": {
+        "low": "#1ACC33",
+        "mid": "#CCCC1A",
+        "high": "#FF330D",
+        "background": "#0A0A0F",
+        "tip": "#FFFFFF"
+    },
+    "spectrogram": {
+        "c0": "#0000B3",
+        "c1": "#00FFB3",
+        "c2": "#00FF00",
+        "c3": "#FFFF00",
+        "c4": "#FF4D4F",
+        "t1": 0.25,
+        "t2": 0.50,
+        "t3": 0.70,
+        "t4": 0.85
+    },
+    "vu_meter": {
+        "background": "#0F0F0F",
+        "unfilled": "#1A1A1A",
+        "green": "#26BF40",
+        "yellow": "#D9BF0D",
+        "red": "#D9260D",
+        "peak": "#FFFFFF",
+        "border": "#4D4D4D",
+        "ticks": "#808080"
+    },
+    "waveform": {
+        "low": "#FF0000",
+        "mid": "#00FF00",
+        "high": "#0000FF",
+        "colorGain": 0.85,
+        "mixGain": 0.90
+    }
+}
