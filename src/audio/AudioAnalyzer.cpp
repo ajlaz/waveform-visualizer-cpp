@@ -134,31 +134,46 @@ void AudioAnalyzer::designFilters()
 // Main DSP entry point
 // ---------------------------------------------------------------------------
 
-bool AudioAnalyzer::process(RingBuffer<float> &ring)
+bool AudioAnalyzer::process(RingBuffer<float> &ringL, RingBuffer<float> &ringR)
 {
-    if (ring.available() < static_cast<size_t>(READ_SIZE))
+    if (ringL.available() < static_cast<size_t>(READ_SIZE))
         return false;
 
-    // Drain exactly READ_SIZE samples
-    float buf[READ_SIZE];
-    size_t count = ring.read(buf, READ_SIZE);
+    // Drain exactly READ_SIZE samples from L (primary / mono) ring
+    float bufL[READ_SIZE];
+    size_t count = ringL.read(bufL, READ_SIZE);
     if (count == 0)
         return false;
 
-    // Update band peaks / VU from this chunk
-    computeBands(buf, count);
+    // Drain matching samples from R ring; fall back to L if unavailable
+    float bufR[READ_SIZE];
+    size_t countR = 0;
+    if (ringR.available() >= static_cast<size_t>(READ_SIZE))
+        countR = ringR.read(bufR, READ_SIZE);
+    if (countR == 0) {
+        std::copy(bufL, bufL + count, bufR);
+        countR = count;
+    }
 
-    // Write samples into the sliding PCM window (circular)
+    // Update band peaks / VU from the L channel
+    computeBands(bufL, count);
+
+    // Write L samples into the sliding PCM window for FFT
     for (size_t i = 0; i < count; ++i)
     {
-        pcmRing_[writePos_] = buf[i];
+        pcmRing_[writePos_] = bufL[i];
         writePos_ = (writePos_ + 1) % static_cast<size_t>(FFT_SIZE);
     }
 
     samplesProcessed_ += count;
-
-    // Recompute FFT once per chunk
     computeFFT();
+
+    // Publish per-channel raw chunks for the stereo imager
+    {
+        std::lock_guard<std::mutex> lk(frameMutex_);
+        latestFrame_.samplesL.assign(bufL, bufL + count);
+        latestFrame_.samplesR.assign(bufR, bufR + countR);
+    }
 
     return true;
 }

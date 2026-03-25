@@ -79,6 +79,7 @@ bool validateColorSchemeJson(const nlohmann::json &root,
     validateSectionObject(root, "spectrogram", errors);
     validateSectionObject(root, "vu_meter", errors);
     validateSectionObject(root, "waveform", errors);
+    validateSectionObject(root, "stereo_imager", errors);
 
     if (!errors.empty())
     {
@@ -133,6 +134,12 @@ bool validateColorSchemeJson(const nlohmann::json &root,
     validateColor3(wf, "high", "waveform", errors);
     validateFloatRange(wf, "colorGain", 0.0f, 2.0f, "waveform", errors);
     validateFloatRange(wf, "mixGain", 0.0f, 2.0f, "waveform", errors);
+
+    if (root.contains("stereo_imager") && root.at("stereo_imager").is_object()) {
+        const auto &si = root.at("stereo_imager");
+        validateColor3(si, "background", "stereo_imager", errors);
+        validateColor3(si, "dot",        "stereo_imager", errors);
+    }
 
     return errors.empty();
 }

@@ -33,8 +33,12 @@ public:
 
     bool isOpen() const { return stream_ != nullptr; }
 
-    // The ring buffer written by the callback. Read from the DSP thread.
-    RingBuffer<float>& ringBuffer() { return *ring_; }
+    // Left (or mono) ring buffer written by the callback.
+    RingBuffer<float>& ringBuffer()  { return *ring_;  }
+    // Right channel ring buffer (mirrors ringBuffer() when device is mono).
+    RingBuffer<float>& ringBufferR() { return *ringR_; }
+
+    bool isStereo() const { return isStereo_; }
 
 private:
     static int paCallback(const void*                     inputBuffer,
@@ -44,6 +48,8 @@ private:
                           PaStreamCallbackFlags           statusFlags,
                           void*                           userData);
 
-    PaStream*                         stream_ = nullptr;
+    PaStream*                          stream_   = nullptr;
     std::unique_ptr<RingBuffer<float>> ring_;
+    std::unique_ptr<RingBuffer<float>> ringR_;
+    bool                               isStereo_ = false;
 };

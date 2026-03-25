@@ -64,6 +64,7 @@ set(SOURCES
     src/visualizers/SpectrogramVisualizer.cpp
     src/visualizers/VUMeterVisualizer.cpp
     src/visualizers/WaveformVisualizer.cpp
+    src/visualizers/StereoImagerVisualizer.cpp
     src/visualizers/QuadVisualizer.cpp
 )
 

@@ -36,5 +36,9 @@
         "high": "#FFCCFF",
         "colorGain": 0.95,
         "mixGain": 0.90
+    },
+    "stereo_imager": {
+        "background": "#050510",
+        "dot": "#CC88FF"
     }
 }

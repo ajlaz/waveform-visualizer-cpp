@@ -46,6 +46,11 @@ struct AnalysisFrame
     // Smoothed RMS across all bands
     float vuLevel = 0.0f;
 
+    // Per-channel raw PCM chunk (READ_SIZE samples each).
+    // samplesR == samplesL when the capture device is mono.
+    std::vector<float> samplesL;
+    std::vector<float> samplesR;
+
     // Seconds since capture started
     double timestamp = 0.0;
 };

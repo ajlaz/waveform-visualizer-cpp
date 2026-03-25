@@ -79,6 +79,12 @@ static void loadWaveform(const json &j, VisualizerColorScheme &scheme)
     loadFloat(j, "mixGain", scheme.waveform.mixGain);
 }
 
+static void loadStereoImager(const json &j, VisualizerColorScheme &scheme)
+{
+    loadColor3(j, "background", scheme.stereoImager.background);
+    loadColor3(j, "dot",        scheme.stereoImager.dot);
+}
+
 bool applyColorSchemeFromFile(VisualizerColorScheme &scheme,
                               const std::string &filePath)
 {
@@ -116,6 +122,7 @@ bool applyColorSchemeFromFile(VisualizerColorScheme &scheme,
     loadSpectrogram(root.at("spectrogram"), scheme);
     loadVuMeter(root.at("vu_meter"), scheme);
     loadWaveform(root.at("waveform"), scheme);
+    loadStereoImager(root.at("stereo_imager"), scheme);
 
     return true;
 }

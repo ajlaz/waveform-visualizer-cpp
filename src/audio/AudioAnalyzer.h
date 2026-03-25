@@ -55,9 +55,10 @@ public:
     AudioAnalyzer();
     ~AudioAnalyzer();
 
-    // Call from the DSP thread. Drains the ring buffer, runs analysis.
+    // Call from the DSP thread. Drains both ring buffers, runs analysis.
+    // ringR is the right channel (or the same mono buffer as ringL).
     // Returns true if a new AnalysisFrame was produced.
-    bool process(RingBuffer<float>& ring);
+    bool process(RingBuffer<float>& ringL, RingBuffer<float>& ringR);
 
     // Thread-safe read of the latest frame (render thread calls this).
     AnalysisFrame getLatestFrame() const;

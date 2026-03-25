@@ -9,6 +9,7 @@
 #include "visualizers/SpectrogramVisualizer.h"
 #include "visualizers/VUMeterVisualizer.h"
 #include "visualizers/WaveformVisualizer.h"
+#include "visualizers/StereoImagerVisualizer.h"
 #include "visualizers/QuadVisualizer.h"
 #include "render/GLHeaders.h"
 #include "ColorSchemes.h"
@@ -38,7 +39,7 @@ static void dspThread(AudioCapture *capture,
 {
     while (running.load(std::memory_order_relaxed))
     {
-        if (!analyzer->process(capture->ringBuffer()))
+        if (!analyzer->process(capture->ringBuffer(), capture->ringBufferR()))
         {
             // Ring buffer not yet full — yield to avoid busy-spin
             std::this_thread::sleep_for(std::chrono::milliseconds(1));
@@ -151,24 +152,34 @@ int main(int argc, char *argv[])
     auto spec = makeVis<SpectrumVisualizer>(shaderDir, W, H, colors);
     auto spect = makeVis<SpectrogramVisualizer>(shaderDir, W, H, colors);
     auto vu = makeVis<VUMeterVisualizer>(shaderDir, W, H, colors);
-    auto wf = makeVis<WaveformVisualizer>(shaderDir, W, H, colors);
+    auto wf      = makeVis<WaveformVisualizer>    (shaderDir, W, H, colors);
+    auto imager  = makeVis<StereoImagerVisualizer>(shaderDir, W, H, colors);
 
-    if (!osc || !spec || !spect || !vu || !wf)
+    if (!osc || !spec || !spect || !vu || !wf || !imager)
         return 1;
 
     // Quad view: four independent instances
-    auto qOsc = makeVis<OscilloscopeVisualizer>(shaderDir, W / 2, H / 2, colors);
-    auto qSpec = makeVis<SpectrumVisualizer>(shaderDir, W / 2, H / 2, colors);
-    auto qVU = makeVis<VUMeterVisualizer>(shaderDir, W / 2, H / 2, colors);
-    auto qWf = makeVis<WaveformVisualizer>(shaderDir, W / 2, H / 2, colors);
-    if (!qOsc || !qSpec || !qVU || !qWf)
+    auto qOsc  = makeVis<OscilloscopeVisualizer>(shaderDir, W / 2, H / 2, colors);
+    auto qSpec = makeVis<SpectrumVisualizer>    (shaderDir, W / 2, H / 2, colors);
+    auto qWf   = makeVis<WaveformVisualizer>    (shaderDir, W / 2, H / 2, colors);
+    if (!qOsc || !qSpec || !qWf)
+        return 1;
+
+    // Bottom-left: stereo imager when stereo device, VU meter otherwise
+    std::unique_ptr<Visualizer> qBL;
+    if (capture.isStereo()) {
+        qBL = makeVis<StereoImagerVisualizer>(shaderDir, W / 2, H / 2, colors);
+    } else {
+        qBL = makeVis<VUMeterVisualizer>(shaderDir, W / 2, H / 2, colors);
+    }
+    if (!qBL)
         return 1;
 
     auto quad = std::make_unique<QuadVisualizer>();
     if (!quad->init(shaderDir,
                     std::move(qSpec),
                     std::move(qOsc),
-                    std::move(qVU),
+                    std::move(qBL),
                     std::move(qWf)))
     {
         std::fprintf(stderr, "Failed to init quad visualizer.\n");
@@ -183,6 +194,7 @@ int main(int argc, char *argv[])
     manager.registerVisualizer(std::move(osc));
     manager.registerVisualizer(std::move(vu));
     manager.registerVisualizer(std::move(wf));
+    manager.registerVisualizer(std::move(imager));
     manager.registerVisualizer(std::move(quad));
 
     // --- Start DSP thread ----------------------------------------------------

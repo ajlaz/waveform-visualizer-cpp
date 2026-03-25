@@ -56,6 +56,12 @@ struct WaveformColors
     float mixGain = 0.0f;
 };
 
+struct StereoImagerColors
+{
+    Color3 background;
+    Color3 dot;
+};
+
 struct VisualizerColorScheme
 {
     std::string name;
@@ -64,4 +70,5 @@ struct VisualizerColorScheme
     SpectrogramColors spectrogram;
     VUMeterColors vu;
     WaveformColors waveform;
+    StereoImagerColors stereoImager;
 };
