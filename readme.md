@@ -1,6 +1,8 @@
 # Waveform Visualizer
 A real-time audio waveform visualizer built in C++ using PortAudio and SDL2. It captures audio input from your microphone or other audio devices and renders dynamic waveforms on the screen.
 
+![demo](demo.gif)
+
 ## Features
 - Real-time audio capture and visualization
 - Multiple visualization modes (e.g., spectrum, waveform, oscilloscope)
