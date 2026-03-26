@@ -22,6 +22,8 @@ struct Command {
 
 class CommandQueue {
 public:
+    CommandQueue() = default;
+
     void push(Command cmd) {
         std::lock_guard<std::mutex> lk(mutex_);
         queue_.push(std::move(cmd));

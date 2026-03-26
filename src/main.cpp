@@ -14,6 +14,13 @@
 #include "render/GLHeaders.h"
 #include "ColorSchemes.h"
 #include "config/ColorSchemeLoader.h"
+#include "config/AppConfig.h"
+#include "server/ControlServer.h"
+#include "server/CommandQueue.h"
+#include <nlohmann/json.hpp>
+#include <algorithm>
+#include <cctype>
+#include <cmath>
 
 #include <SDL2/SDL.h>
 #include <cstdio>
@@ -67,34 +74,20 @@ static std::unique_ptr<T> makeVis(const std::string &shaderDir, int w, int h,
 
 int main(int argc, char *argv[])
 {
-    // --- Argument parsing ---------------------------------------------------
-    int deviceIndex = -1;
-    bool listOnly = false;
-    std::string schemeName = "default";
-    std::string schemeDir = "color_schemes";
-    for (int i = 1; i < argc; ++i)
-    {
-        if (std::strcmp(argv[i], "--list") == 0)
-        {
-            listOnly = true;
-        }
-        else if (std::strcmp(argv[i], "--device") == 0 && i + 1 < argc)
-        {
+    AppConfig cfg = loadConfig(argc, argv);
+
+    int  deviceIndex = -1;
+    bool listOnly    = false;
+    for (int i = 1; i < argc; ++i) {
+        if (std::strcmp(argv[i], "--list")   == 0) listOnly = true;
+        if (std::strcmp(argv[i], "--device") == 0 && i + 1 < argc)
             deviceIndex = std::atoi(argv[++i]);
-        }
-        else if (std::strcmp(argv[i], "--scheme") == 0 && i + 1 < argc)
-        {
-            schemeName = argv[++i];
-        }
-        else if (std::strcmp(argv[i], "--scheme-dir") == 0 && i + 1 < argc)
-        {
-            schemeDir = argv[++i];
-        }
-        else
-        {
+        // Legacy positional device index
+        if (argv[i][0] != '-' && std::isdigit(static_cast<unsigned char>(argv[i][0])))
             deviceIndex = std::atoi(argv[i]);
-        }
     }
+    const std::string schemeName = cfg.scheme;
+    const std::string schemeDir  = cfg.schemeDir;
 
     // --- Audio capture (constructor calls Pa_Initialize) --------------------
     AudioCapture capture;
@@ -122,6 +115,8 @@ int main(int argc, char *argv[])
         std::fprintf(stderr, "Failed to init renderer.\n");
         return 1;
     }
+
+    SDL_GL_SetSwapInterval(cfg.vsync ? 1 : 0);
 
     const std::string shaderDir = SHADER_DIR;
     const int W = renderer.width();
@@ -153,9 +148,15 @@ int main(int argc, char *argv[])
     auto spect = makeVis<SpectrogramVisualizer>(shaderDir, W, H, colors);
     auto vu = makeVis<VUMeterVisualizer>(shaderDir, W, H, colors);
     auto wf      = makeVis<WaveformVisualizer>    (shaderDir, W, H, colors);
-    auto imager  = makeVis<StereoImagerVisualizer>(shaderDir, W, H, colors);
 
-    if (!osc || !spec || !spect || !vu || !wf || !imager)
+    auto imager = std::make_unique<StereoImagerVisualizer>();
+    if (!imager->init(shaderDir, colors, cfg.texSize)) {
+        std::fprintf(stderr, "Failed to init visualizer 'StereoImager'\n");
+        return 1;
+    }
+    imager->onResize(W, H);
+
+    if (!osc || !spec || !spect || !vu || !wf)
         return 1;
 
     // Quad view: four independent instances
@@ -168,12 +169,17 @@ int main(int argc, char *argv[])
     // Bottom-left: stereo imager when stereo device, VU meter otherwise
     std::unique_ptr<Visualizer> qBL;
     if (capture.isStereo()) {
-        qBL = makeVis<StereoImagerVisualizer>(shaderDir, W / 2, H / 2, colors);
+        auto qImager = std::make_unique<StereoImagerVisualizer>();
+        if (!qImager->init(shaderDir, colors, cfg.texSize)) {
+            std::fprintf(stderr, "Failed to init quad StereoImager\n");
+            return 1;
+        }
+        qImager->onResize(W / 2, H / 2);
+        qBL = std::move(qImager);
     } else {
         qBL = makeVis<VUMeterVisualizer>(shaderDir, W / 2, H / 2, colors);
+        if (!qBL) return 1;
     }
-    if (!qBL)
-        return 1;
 
     auto quad = std::make_unique<QuadVisualizer>();
     if (!quad->init(shaderDir,
@@ -197,6 +203,36 @@ int main(int argc, char *argv[])
     manager.registerVisualizer(std::move(imager));
     manager.registerVisualizer(std::move(quad));
 
+    // --- Remote control state and server -------------------------------------
+    std::string currentScheme = schemeName;
+    float       currentGain   = 1.0f;
+
+    auto buildStateJson = [&]() -> std::string {
+        const char* filterNames[] = {"None", "CRT", "Fisheye"};
+        int fi = static_cast<int>(ppConfig.filter);
+        nlohmann::json j;
+        j["mode"]       = std::string(manager.activeName());
+        j["mode_index"] = manager.activeIndex();
+        j["mode_count"] = manager.count();
+        j["filter"]     = filterNames[fi];
+        j["scheme"]     = currentScheme;
+        j["params"]     = manager.getAllParams();
+        j["params"]["global"] = { {"gain", currentGain} };
+        return j.dump();
+    };
+
+    CommandQueue cmdQueue;
+    std::unique_ptr<ControlServer> server;
+    if (cfg.serverEnabled) {
+        server = std::make_unique<ControlServer>(cmdQueue, schemeDir);
+        if (!server->start(cfg.serverPort)) {
+            std::fprintf(stderr, "Failed to bind control server on port %d\n", cfg.serverPort);
+            return 1;
+        }
+        std::printf("Control server: http://0.0.0.0:%d\n", cfg.serverPort);
+        server->pushState(buildStateJson());
+    }
+
     // --- Start DSP thread ----------------------------------------------------
     std::atomic<bool> running{true};
     std::thread dsp(dspThread, &capture, &analyzer, std::ref(running));
@@ -208,6 +244,8 @@ int main(int argc, char *argv[])
     bool quit = false;
     while (!quit)
     {
+        bool stateChanged = false;
+
         // Event handling
         SDL_Event event;
         while (SDL_PollEvent(&event))
@@ -228,10 +266,12 @@ int main(int argc, char *argv[])
                 case SDLK_m:
                     manager.cycleNext();
                     std::printf("Mode: %s\n", std::string(manager.activeName()).c_str());
+                    stateChanged = true;
                     break;
                 case SDLK_n:
                     manager.cyclePrev();
                     std::printf("Mode: %s\n", std::string(manager.activeName()).c_str());
+                    stateChanged = true;
                     break;
                 case SDLK_f:
                     if (ppConfig.filter == PostProcessor::FilterMode::None)
@@ -243,6 +283,7 @@ int main(int argc, char *argv[])
                     std::printf("Filter: %s\n",
                                 ppConfig.filter == PostProcessor::FilterMode::CRT ? "CRT" : ppConfig.filter == PostProcessor::FilterMode::Fisheye ? "Fisheye"
                                                                                                                                                   : "None");
+                    stateChanged = true;
                     break;
                 default:
                     break;
@@ -265,6 +306,57 @@ int main(int argc, char *argv[])
             }
         }
 
+        // Drain remote control commands
+        {
+            Command cmd;
+            while (cmdQueue.pop(cmd)) {
+                stateChanged = true;
+                switch (cmd.type) {
+                case Command::Type::NextMode:
+                    manager.cycleNext();
+                    std::printf("Mode: %s\n", std::string(manager.activeName()).c_str());
+                    break;
+                case Command::Type::PrevMode:
+                    manager.cyclePrev();
+                    std::printf("Mode: %s\n", std::string(manager.activeName()).c_str());
+                    break;
+                case Command::Type::CycleFilter:
+                    if      (ppConfig.filter == PostProcessor::FilterMode::None)
+                        ppConfig.filter = PostProcessor::FilterMode::CRT;
+                    else if (ppConfig.filter == PostProcessor::FilterMode::CRT)
+                        ppConfig.filter = PostProcessor::FilterMode::Fisheye;
+                    else
+                        ppConfig.filter = PostProcessor::FilterMode::None;
+                    break;
+                case Command::Type::SetFilter:
+                    if      (cmd.strValue == "CRT")     ppConfig.filter = PostProcessor::FilterMode::CRT;
+                    else if (cmd.strValue == "Fisheye") ppConfig.filter = PostProcessor::FilterMode::Fisheye;
+                    else                                ppConfig.filter = PostProcessor::FilterMode::None;
+                    break;
+                case Command::Type::SetScheme: {
+                    VisualizerColorScheme newColors{};
+                    newColors.name = cmd.strValue;
+                    if (applyColorSchemeFromDir(newColors, schemeDir, cmd.strValue)) {
+                        colors = newColors;
+                        currentScheme = cmd.strValue;
+                        manager.setColorScheme(colors);
+                    }
+                    break;
+                }
+                case Command::Type::SetParam:
+                    if (cmd.visualizer == "global") {
+                        currentGain = std::clamp(cmd.value, 0.0f, 4.0f);
+                        analyzer.setGain(currentGain);
+                    } else {
+                        manager.setParam(cmd.visualizer, cmd.param, cmd.value);
+                    }
+                    break;
+                }
+            }
+        }
+        if (stateChanged && server)
+            server->pushState(buildStateJson());
+
         // Get latest DSP frame
         AnalysisFrame frame = analyzer.getLatestFrame();
 
@@ -277,6 +369,15 @@ int main(int argc, char *argv[])
         postProc.render(renderer.sceneTexture(), ppConfig);
 
         renderer.endFrame(); // SDL_GL_SwapWindow
+
+        // Manual frame cap when vsync is disabled (Pi + CRT scenario)
+        if (!cfg.vsync) {
+            static Uint32 lastFrame = SDL_GetTicks();
+            const  Uint32 frameMs   = 1000u / static_cast<Uint32>(std::max(1, cfg.targetFps));
+            const  Uint32 elapsed   = SDL_GetTicks() - lastFrame;
+            if (elapsed < frameMs) SDL_Delay(frameMs - elapsed);
+            lastFrame = SDL_GetTicks();
+        }
     }
 
     // --- Cleanup -------------------------------------------------------------
