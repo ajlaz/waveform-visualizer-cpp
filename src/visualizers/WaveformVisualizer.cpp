@@ -160,7 +160,7 @@ void WaveformVisualizer::buildColumn(std::vector<uint8_t> &col) const
         const Color3 colours[3] = {colors_.low, colors_.mid, colors_.high};
         for (int band = 0; band < 3; ++band)
         {
-            const float bh = (offset <= 0.0f) ? topHeights_[band] : botHeights_[band];
+            const float bh = ((offset <= 0.0f) ? topHeights_[band] : botHeights_[band]) * lineWidth_;
             if (bh < 1.0f || dist > bh)
                 continue;
             const float gain = bandGains_[band];
@@ -203,6 +203,17 @@ void WaveformVisualizer::render()
     const float writeNorm = static_cast<float>(writeCol_) / width_;
     shader_.setFloat("uWriteCol", writeNorm);
     quad_.draw();
+}
+
+void WaveformVisualizer::setParam(std::string_view key, float value)
+{
+    if (key == "line_width")
+        lineWidth_ = std::clamp(value, 0.5f, 4.0f);
+}
+
+nlohmann::json WaveformVisualizer::getParams() const
+{
+    return { {"line_width", lineWidth_} };
 }
 
 WaveformVisualizer::~WaveformVisualizer() = default;
