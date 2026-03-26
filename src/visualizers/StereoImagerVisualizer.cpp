@@ -4,20 +4,21 @@
 #include <algorithm>
 
 bool StereoImagerVisualizer::init(const std::string &shaderDir,
-                                  const VisualizerColorScheme &scheme)
+                                  const VisualizerColorScheme &scheme,
+                                  int texSize)
 {
     if (!shader_.load(shaderDir + "/imager.vert",
                       shaderDir + "/imager.frag"))
         return false;
 
     quad_.init();
-    colors_ = scheme.stereoImager;
+    colors_  = scheme.stereoImager;
+    texSize_ = texSize;
 
-    // Allocate GL_R32F accumulation texture
     glGenTextures(1, &tex_);
     glBindTexture(GL_TEXTURE_2D, tex_);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_R32F,
-                 TEX_SIZE, TEX_SIZE, 0,
+                 texSize_, texSize_, 0,
                  GL_RED, GL_FLOAT, nullptr);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -25,7 +26,7 @@ bool StereoImagerVisualizer::init(const std::string &shaderDir,
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glBindTexture(GL_TEXTURE_2D, 0);
 
-    accum_.assign(TEX_SIZE * TEX_SIZE, 0.0f);
+    accum_.assign(texSize_ * texSize_, 0.0f);
     return true;
 }
 
@@ -40,46 +41,39 @@ void StereoImagerVisualizer::update(const AnalysisFrame &frame)
     const size_t n = std::min(frame.samplesL.size(), frame.samplesR.size());
     if (n == 0) return;
 
-    // Decay the whole accumulation buffer
     for (float &v : accum_)
-        v *= DECAY;
+        v *= decay_;
 
-    // Helper: paint a pixel and its 4 neighbours (cross splat)
-    auto paint = [&](int px, int py, float amount) {
-        auto add = [&](int x, int y, float a) {
-            if (x >= 0 && x < TEX_SIZE && y >= 0 && y < TEX_SIZE)
-                accum_[y * TEX_SIZE + x] = std::min(1.0f, accum_[y * TEX_SIZE + x] + a);
-        };
-        add(px,   py,   amount);
-        add(px-1, py,   amount * 0.5f);
-        add(px+1, py,   amount * 0.5f);
-        add(px,   py-1, amount * 0.5f);
-        add(px,   py+1, amount * 0.5f);
+    auto add = [&](int x, int y, float a) {
+        if (x >= 0 && x < texSize_ && y >= 0 && y < texSize_)
+            accum_[y * texSize_ + x] = std::min(1.0f, accum_[y * texSize_ + x] + a);
     };
 
     for (size_t i = 0; i < n; ++i) {
-        const float L = frame.samplesL[i];
-        const float R = frame.samplesR[i];
-
-        // M/S decomposition, both in [-1, 1]
+        const float L    = frame.samplesL[i];
+        const float R    = frame.samplesR[i];
         const float side = (L - R) * 0.5f;
         const float mid  = (L + R) * 0.5f;
 
-        // Map to [0,1] texture coords: side→X (right=more L), mid→Y (up=louder)
-        const float xn =  side / SCALE * 0.5f + 0.5f;
-        const float yn = -mid  / SCALE * 0.5f + 0.5f;
-        if (xn < 0.0f || xn > 1.0f || yn < 0.0f || yn > 1.0f) continue;
+        const float xf =  (side / scale_ * 0.5f + 0.5f) * (texSize_ - 1);
+        const float yf = (-mid  / scale_ * 0.5f + 0.5f) * (texSize_ - 1);
+        if (xf < 0.0f || xf >= texSize_ - 1 || yf < 0.0f || yf >= texSize_ - 1) continue;
 
-        const int px = static_cast<int>(xn * (TEX_SIZE - 1));
-        const int py = static_cast<int>(yn * (TEX_SIZE - 1));
-        paint(px, py, ADD);
+        const int   x0 = static_cast<int>(xf);
+        const int   y0 = static_cast<int>(yf);
+        const float fx = xf - x0;
+        const float fy = yf - y0;
+
+        add(x0,     y0,     brightness_ * (1.0f - fx) * (1.0f - fy));
+        add(x0 + 1, y0,     brightness_ * fx          * (1.0f - fy));
+        add(x0,     y0 + 1, brightness_ * (1.0f - fx) * fy);
+        add(x0 + 1, y0 + 1, brightness_ * fx          * fy);
     }
 
-    // Upload updated accumulation to GPU
     glBindTexture(GL_TEXTURE_2D, tex_);
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
     glTexSubImage2D(GL_TEXTURE_2D, 0,
-                    0, 0, TEX_SIZE, TEX_SIZE,
+                    0, 0, texSize_, texSize_,
                     GL_RED, GL_FLOAT, accum_.data());
     glBindTexture(GL_TEXTURE_2D, 0);
 }
@@ -104,6 +98,18 @@ void StereoImagerVisualizer::render()
                     static_cast<float>(width_),
                     static_cast<float>(height_));
     quad_.draw();
+}
+
+void StereoImagerVisualizer::setParam(std::string_view key, float value)
+{
+    if      (key == "decay")      decay_      = std::clamp(value, 0.80f, 0.99f);
+    else if (key == "brightness") brightness_ = std::clamp(value, 0.01f, 0.50f);
+    else if (key == "scale")      scale_      = std::clamp(value, 0.10f, 2.00f);
+}
+
+nlohmann::json StereoImagerVisualizer::getParams() const
+{
+    return { {"decay", decay_}, {"brightness", brightness_}, {"scale", scale_} };
 }
 
 StereoImagerVisualizer::~StereoImagerVisualizer()
