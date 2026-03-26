@@ -3,6 +3,7 @@
 #include "RingBuffer.h"
 #include <fftw3.h>
 #include <array>
+#include <atomic>
 #include <mutex>
 #include <vector>
 
@@ -63,6 +64,9 @@ public:
     // Thread-safe read of the latest frame (render thread calls this).
     AnalysisFrame getLatestFrame() const;
 
+    void  setGain(float g) { gain_.store(std::clamp(g, 0.0f, 4.0f), std::memory_order_relaxed); }
+    float getGain()  const { return gain_.load(std::memory_order_relaxed); }
+
 private:
     void designFilters();
     void computeFFT();
@@ -96,4 +100,6 @@ private:
 
     double startTime_    = 0.0;
     bool   hasStartTime_ = false;
+
+    std::atomic<float> gain_{1.0f};
 };

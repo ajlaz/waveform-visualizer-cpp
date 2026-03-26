@@ -155,6 +155,13 @@ bool AudioAnalyzer::process(RingBuffer<float> &ringL, RingBuffer<float> &ringR)
         countR = count;
     }
 
+    // Apply global gain to both channels
+    const float g = gain_.load(std::memory_order_relaxed);
+    if (g != 1.0f) {
+        for (size_t i = 0; i < count;  ++i) bufL[i] *= g;
+        for (size_t i = 0; i < countR; ++i) bufR[i] *= g;
+    }
+
     // Update band peaks / VU from the L channel
     computeBands(bufL, count);
 
