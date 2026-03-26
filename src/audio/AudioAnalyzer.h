@@ -2,6 +2,7 @@
 #include "../Common.h"
 #include "RingBuffer.h"
 #include <fftw3.h>
+#include <algorithm>
 #include <array>
 #include <atomic>
 #include <mutex>
