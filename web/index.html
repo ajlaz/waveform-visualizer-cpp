@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Visualizer Control</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, -apple-system, sans-serif; background: #111; color: #eee; min-height: 100vh; }
+
+    #header {
+      display: flex; align-items: center; justify-content: space-between;
+      background: #1a1a1a; border-bottom: 1px solid #333;
+      padding: 12px 16px; position: sticky; top: 0; z-index: 10;
+    }
+    #mode-name { font-size: 1.1rem; font-weight: 600; text-align: center; flex: 1; letter-spacing: 0.05em; }
+    .nav-btn {
+      background: #2a2a2a; color: #eee; border: 1px solid #444;
+      border-radius: 8px; padding: 10px 22px; font-size: 1rem;
+      cursor: pointer; min-width: 85px; transition: background 0.1s;
+    }
+    .nav-btn:active, .nav-btn:hover { background: #3a3a3a; }
+
+    #tab-bar {
+      display: flex; overflow-x: auto; background: #161616;
+      border-bottom: 1px solid #2a2a2a; scrollbar-width: none;
+    }
+    #tab-bar::-webkit-scrollbar { display: none; }
+    .tab-btn {
+      background: none; color: #888; border: none;
+      border-bottom: 2px solid transparent;
+      padding: 11px 18px; font-size: 0.88rem; cursor: pointer;
+      white-space: nowrap; flex-shrink: 0; transition: color 0.15s;
+    }
+    .tab-btn:hover { color: #ccc; }
+    .tab-btn.active { color: #eee; border-bottom-color: #5aafff; }
+
+    .tab-pane { display: none; padding: 20px 16px; max-width: 700px; }
+    .tab-pane.active { display: block; }
+
+    .section-title {
+      font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.1em;
+      color: #555; margin-bottom: 14px; margin-top: 8px;
+    }
+
+    .control-row { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+    .control-label { min-width: 120px; font-size: 0.88rem; color: #999; flex-shrink: 0; }
+    .control-row input[type=range] { flex: 1; min-width: 0; height: 6px; accent-color: #5aafff; cursor: pointer; }
+    .control-row input[type=number] {
+      width: 72px; background: #1e1e1e; color: #eee;
+      border: 1px solid #3a3a3a; border-radius: 6px;
+      padding: 6px 8px; font-size: 0.88rem; text-align: right; flex-shrink: 0;
+    }
+    .control-row input[type=number]:focus { outline: none; border-color: #5aafff; }
+
+    select {
+      flex: 1; background: #1e1e1e; color: #eee;
+      border: 1px solid #3a3a3a; border-radius: 6px;
+      padding: 9px 12px; font-size: 0.88rem; cursor: pointer;
+    }
+    .filter-group { display: flex; gap: 8px; flex: 1; }
+    .filter-btn {
+      flex: 1; background: #1e1e1e; color: #888;
+      border: 1px solid #3a3a3a; border-radius: 6px;
+      padding: 9px 8px; font-size: 0.88rem; cursor: pointer; transition: all 0.15s;
+    }
+    .filter-btn:hover { background: #2a2a2a; color: #ccc; }
+    .filter-btn.active { background: #0d2a42; color: #5aafff; border-color: #5aafff; }
+
+    @media (max-width: 600px) {
+      .nav-btn { padding: 13px 16px; min-width: 72px; font-size: 0.95rem; }
+      .control-label { min-width: 90px; font-size: 0.82rem; }
+      .tab-pane { padding: 16px 12px; }
+    }
+  </style>
+</head>
+<body>
+
+<div id="header">
+  <button class="nav-btn" id="btn-prev">&#9664; PREV</button>
+  <span id="mode-name">&#8212;</span>
+  <button class="nav-btn" id="btn-next">NEXT &#9654;</button>
+</div>
+
+<div id="tab-bar">
+  <button class="tab-btn active" data-tab="general">General</button>
+  <button class="tab-btn" data-tab="oscilloscope">Oscilloscope</button>
+  <button class="tab-btn" data-tab="spectrum">Spectrum</button>
+  <button class="tab-btn" data-tab="spectrogram">Spectrogram</button>
+  <button class="tab-btn" data-tab="vu_meter">VU Meter</button>
+  <button class="tab-btn" data-tab="waveform">Waveform</button>
+  <button class="tab-btn" data-tab="stereo_imager">Stereo Imager</button>
+</div>
+
+<div class="tab-pane active" id="tab-general">
+  <p class="section-title">Color &amp; Effects</p>
+  <div class="control-row">
+    <span class="control-label">Color Scheme</span>
+    <select id="scheme-select"></select>
+  </div>
+  <div class="control-row">
+    <span class="control-label">Post-Process</span>
+    <div class="filter-group">
+      <button class="filter-btn active" id="filter-None">None</button>
+      <button class="filter-btn"        id="filter-CRT">CRT</button>
+      <button class="filter-btn"        id="filter-Fisheye">Fisheye</button>
+    </div>
+  </div>
+  <p class="section-title" style="margin-top:20px">Input</p>
+  <div class="control-row">
+    <span class="control-label">Global Gain</span>
+    <input type="range"  id="r-global-gain" min="0" max="4" step="0.05" value="1">
+    <input type="number" id="n-global-gain" min="0" max="4" step="0.05" value="1">
+  </div>
+</div>
+
+<div class="tab-pane" id="tab-oscilloscope">
+  <div class="control-row">
+    <span class="control-label">Time Window</span>
+    <input type="range"  id="r-oscilloscope-time_window" min="0.1" max="1" step="0.05" value="1">
+    <input type="number" id="n-oscilloscope-time_window" min="0.1" max="1" step="0.05" value="1">
+  </div>
+</div>
+
+<div class="tab-pane" id="tab-spectrum">
+  <div class="control-row">
+    <span class="control-label">Smoothing</span>
+    <input type="range"  id="r-spectrum-smoothing" min="0" max="0.99" step="0.01" value="0.8">
+    <input type="number" id="n-spectrum-smoothing" min="0" max="0.99" step="0.01" value="0.8">
+  </div>
+</div>
+
+<div class="tab-pane" id="tab-spectrogram">
+  <div class="control-row">
+    <span class="control-label">Scroll Speed</span>
+    <input type="range"  id="r-spectrogram-scroll_speed" min="0.5" max="4" step="0.1" value="1">
+    <input type="number" id="n-spectrogram-scroll_speed" min="0.5" max="4" step="0.1" value="1">
+  </div>
+</div>
+
+<div class="tab-pane" id="tab-vu_meter">
+  <div class="control-row">
+    <span class="control-label">Peak Hold (s)</span>
+    <input type="range"  id="r-vu_meter-peak_hold" min="0" max="5" step="0.1" value="1.5">
+    <input type="number" id="n-vu_meter-peak_hold" min="0" max="5" step="0.1" value="1.5">
+  </div>
+</div>
+
+<div class="tab-pane" id="tab-waveform">
+  <div class="control-row">
+    <span class="control-label">Height Scale</span>
+    <input type="range"  id="r-waveform-line_width" min="0.5" max="4" step="0.1" value="1">
+    <input type="number" id="n-waveform-line_width" min="0.5" max="4" step="0.1" value="1">
+  </div>
+</div>
+
+<div class="tab-pane" id="tab-stereo_imager">
+  <div class="control-row">
+    <span class="control-label">Decay</span>
+    <input type="range"  id="r-stereo_imager-decay" min="0.8" max="0.99" step="0.005" value="0.96">
+    <input type="number" id="n-stereo_imager-decay" min="0.8" max="0.99" step="0.005" value="0.96">
+  </div>
+  <div class="control-row">
+    <span class="control-label">Brightness</span>
+    <input type="range"  id="r-stereo_imager-brightness" min="0.01" max="0.5" step="0.01" value="0.08">
+    <input type="number" id="n-stereo_imager-brightness" min="0.01" max="0.5" step="0.01" value="0.08">
+  </div>
+  <div class="control-row">
+    <span class="control-label">Scale</span>
+    <input type="range"  id="r-stereo_imager-scale" min="0.1" max="2" step="0.05" value="0.85">
+    <input type="number" id="n-stereo_imager-scale" min="0.1" max="2" step="0.05" value="0.85">
+  </div>
+</div>
+
+<script>
+// --- API helpers ---
+function cmd(action, value) {
+  const body = (value !== undefined) ? {action, value} : {action};
+  fetch('/command', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
+}
+function sendParam(vis, key, value) {
+  fetch('/param', {method:'POST', headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({visualizer:vis, param:key, value})});
+}
+
+// Keep slider and number input in sync with each other (no XSS risk: values are numbers)
+function syncControls(vis, key, value) {
+  const r = document.getElementById('r-' + vis + '-' + key);
+  const n = document.getElementById('n-' + vis + '-' + key);
+  const v = parseFloat(value);
+  if (r) r.value = v;
+  if (n) n.value = v;
+}
+
+// Wire up all slider+number pairs found in the document
+document.querySelectorAll('input[type=range][id^="r-"]').forEach(slider => {
+  const parts = slider.id.slice(2).split('-');         // strip "r-", split on first "-"
+  const key   = parts.pop();
+  const vis   = parts.join('_');
+  const num   = document.getElementById('n-' + vis + '-' + key);
+
+  slider.addEventListener('change', () => {
+    const v = parseFloat(slider.value);
+    if (num) num.value = v;
+    sendParam(vis, key, v);
+  });
+  if (num) {
+    num.addEventListener('change', () => {
+      const v = parseFloat(num.value);
+      slider.value = v;
+      sendParam(vis, key, v);
+    });
+  }
+});
+
+// --- Tabs ---
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    const pane = document.getElementById('tab-' + btn.dataset.tab);
+    if (pane) pane.classList.add('active');
+  });
+});
+
+// --- Navigation ---
+document.getElementById('btn-prev').addEventListener('click', () => cmd('prev_mode'));
+document.getElementById('btn-next').addEventListener('click', () => cmd('next_mode'));
+
+// --- Filter buttons ---
+['None','CRT','Fisheye'].forEach(name => {
+  const btn = document.getElementById('filter-' + name);
+  if (btn) btn.addEventListener('click', () => cmd('set_filter', name));
+});
+
+// --- Apply state received from server ---
+function applyState(state) {
+  if (state.mode) {
+    const el = document.getElementById('mode-name');
+    if (el) el.textContent = state.mode;
+  }
+  if (state.filter) {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    const fb = document.getElementById('filter-' + state.filter);
+    if (fb) fb.classList.add('active');
+  }
+  if (state.scheme) {
+    const sel = document.getElementById('scheme-select');
+    if (sel) sel.value = state.scheme;
+  }
+  if (state.params) {
+    for (const [vis, params] of Object.entries(state.params)) {
+      for (const [key, value] of Object.entries(params)) {
+        syncControls(vis, key, value);
+      }
+    }
+  }
+}
+
+// --- Scheme dropdown ---
+fetch('/schemes').then(r => r.json()).then(schemes => {
+  const sel = document.getElementById('scheme-select');
+  schemes.sort().forEach(s => {
+    const opt = document.createElement('option');
+    opt.value       = s;
+    opt.textContent = s.charAt(0).toUpperCase() + s.slice(1);
+    sel.appendChild(opt);
+  });
+  sel.addEventListener('change', () => cmd('set_scheme', sel.value));
+  fetch('/state').then(r => r.json()).then(s => { if (s.scheme) sel.value = s.scheme; });
+});
+
+// --- Initial state load ---
+fetch('/state').then(r => r.json()).then(applyState);
+
+// --- SSE live updates ---
+const es = new EventSource('/stream');
+es.onmessage = e => applyState(JSON.parse(e.data));
+
+// --- Keyboard shortcuts (only when not typing in an input) ---
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+  if (e.key === 'm' || e.key === 'M') cmd('next_mode');
+  if (e.key === 'n' || e.key === 'N') cmd('prev_mode');
+  if (e.key === 'f' || e.key === 'F') cmd('cycle_filter');
+});
+</script>
+</body>
+</html>
