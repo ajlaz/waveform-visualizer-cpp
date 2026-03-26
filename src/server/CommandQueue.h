@@ -13,7 +13,7 @@ struct Command {
         SetScheme,   // strValue: scheme name
         SetParam,    // visualizer + param + value
     };
-    Type        type;
+    Type        type  = Type::NextMode;
     std::string visualizer;  // SetParam only
     std::string param;       // SetParam only
     float       value  = 0.0f;
@@ -35,6 +35,9 @@ public:
         queue_.pop();
         return true;
     }
+
+    CommandQueue(const CommandQueue&)            = delete;
+    CommandQueue& operator=(const CommandQueue&) = delete;
 
 private:
     std::queue<Command> queue_;
