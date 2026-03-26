@@ -3,6 +3,8 @@
 #include <vector>
 #include <memory>
 #include <string_view>
+#include <nlohmann/json.hpp>
+#include "../ColorSchemes.h"
 
 // ---------------------------------------------------------------------------
 // VisualizerManager
@@ -26,6 +28,10 @@ public:
     std::string_view activeName() const;
     size_t           activeIndex() const { return activeIdx_; }
     size_t           count()       const { return visualizers_.size(); }
+
+    void setParam(std::string_view visName, std::string_view key, float value);
+    void setColorScheme(const VisualizerColorScheme& scheme);
+    nlohmann::json getAllParams() const;
 
 private:
     std::vector<std::unique_ptr<Visualizer>> visualizers_;

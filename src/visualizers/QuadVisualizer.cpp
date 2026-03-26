@@ -115,3 +115,9 @@ QuadVisualizer::~QuadVisualizer() {
         if (c.rbo) glDeleteRenderbuffers(1, &c.rbo);
     }
 }
+
+void QuadVisualizer::setColorScheme(const VisualizerColorScheme& scheme)
+{
+    for (auto& c : cells_)
+        c.vis->setColorScheme(scheme);
+}

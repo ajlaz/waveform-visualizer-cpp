@@ -2,6 +2,7 @@
 #include "Visualizer.h"
 #include "../render/ShaderProgram.h"
 #include "../render/GPUBuffer.h"
+#include "../ColorSchemes.h"
 #include <array>
 #include <memory>
 
@@ -24,6 +25,8 @@ public:
     void onResize(int w, int h) override;
     void update(const AnalysisFrame& frame) override;
     void render()               override;
+
+    void setColorScheme(const VisualizerColorScheme& scheme) override;
 
     ~QuadVisualizer() override;
 
