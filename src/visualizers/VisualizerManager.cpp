@@ -1,7 +1,4 @@
 #include "VisualizerManager.h"
-#include <stdexcept>
-#include <nlohmann/json.hpp>
-#include "../ColorSchemes.h"
 #include <cctype>
 
 void VisualizerManager::registerVisualizer(std::unique_ptr<Visualizer> vis) {
