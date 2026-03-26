@@ -51,7 +51,8 @@ void OscilloscopeVisualizer::update(const AnalysisFrame &frame)
         }
     }
 
-    const int count = std::min(width_, N - start);
+    const int requested = static_cast<int>(timeWindow_ * static_cast<float>(N - start));
+    const int count = std::min(width_, std::max(2, std::min(requested, N - start)));
     vertices_.resize(count * 2);
 
     for (int i = 0; i < count; ++i)
@@ -79,6 +80,17 @@ void OscilloscopeVisualizer::render()
     glLineWidth(1.5f);
     glDrawArrays(GL_LINE_STRIP, 0, static_cast<GLsizei>(vertices_.size() / 2));
     glBindVertexArray(0);
+}
+
+void OscilloscopeVisualizer::setParam(std::string_view key, float value)
+{
+    if (key == "time_window")
+        timeWindow_ = std::clamp(value, 0.1f, 1.0f);
+}
+
+nlohmann::json OscilloscopeVisualizer::getParams() const
+{
+    return { {"time_window", timeWindow_} };
 }
 
 OscilloscopeVisualizer::~OscilloscopeVisualizer()
