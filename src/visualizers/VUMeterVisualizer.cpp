@@ -39,9 +39,11 @@ void VUMeterVisualizer::update(const AnalysisFrame &frame)
     }
     else
     {
-        peakDecay_ += 1.0f / 60.0f; // assume ~60fps
-        peakDb_ -= peakDecay_ * 0.4f;
-        peakDb_ = std::max(peakDb_, DB_FLOOR);
+        peakDecay_ += 1.0f / 60.0f;  // accumulates time in seconds
+        if (peakDecay_ > peakHold_) {
+            peakDb_ -= (peakDecay_ - peakHold_) * 0.4f;
+            peakDb_  = std::max(peakDb_, DB_FLOOR);
+        }
     }
 }
 
@@ -93,6 +95,17 @@ void VUMeterVisualizer::render()
             textRenderer_.drawCentered(lbl.label, px, labelY, lr, lg, lb, scale);
         }
     }
+}
+
+void VUMeterVisualizer::setParam(std::string_view key, float value)
+{
+    if (key == "peak_hold")
+        peakHold_ = std::clamp(value, 0.0f, 5.0f);
+}
+
+nlohmann::json VUMeterVisualizer::getParams() const
+{
+    return { {"peak_hold", peakHold_} };
 }
 
 VUMeterVisualizer::~VUMeterVisualizer() = default;

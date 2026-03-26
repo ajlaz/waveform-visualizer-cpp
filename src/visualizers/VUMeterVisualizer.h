@@ -15,6 +15,10 @@ public:
     void update(const AnalysisFrame &frame) override;
     void render() override;
 
+    void setParam(std::string_view key, float value) override;
+    nlohmann::json getParams() const override;
+    void setColorScheme(const VisualizerColorScheme& scheme) override { colors_ = scheme.vu; }
+
     ~VUMeterVisualizer() override;
 
 private:
@@ -29,4 +33,5 @@ private:
     float peakDecay_ = 0.0f;
     int width_ = 0;
     int height_ = 0;
+    float peakHold_ = 1.5f;  // seconds to hold peak before decaying
 };
