@@ -19,6 +19,10 @@ public:
     void update(const AnalysisFrame &frame) override;
     void render() override;
 
+    void setParam(std::string_view key, float value) override;
+    nlohmann::json getParams() const override;
+    void setColorScheme(const VisualizerColorScheme& scheme) override { colors_ = scheme.spectrogram; }
+
     ~SpectrogramVisualizer() override;
 
 private:
@@ -33,4 +37,6 @@ private:
     int writeCol_ = 0;            // circular write position
     int width_ = 0;
     int height_ = 0;
+    float scrollSpeed_ = 1.0f;  // columns written per frame
+    float scrollAccum_ = 0.0f;  // fractional accumulator
 };

@@ -102,13 +102,17 @@ void SpectrogramVisualizer::update(const AnalysisFrame &frame)
     // For spectrogram we scroll horizontally: write into column writeCol_
     glBindTexture(GL_TEXTURE_2D, 0);
     scrollTex_.bind(0);
-    glTexSubImage2D(GL_TEXTURE_2D, 0,
-                    writeCol_, 0,
-                    1, height_,
-                    GL_RGB, GL_UNSIGNED_BYTE,
-                    colBuf_.data());
 
-    writeCol_ = (writeCol_ + 1) % width_;
+    scrollAccum_ += scrollSpeed_;
+    while (scrollAccum_ >= 1.0f) {
+        glTexSubImage2D(GL_TEXTURE_2D, 0,
+                        writeCol_, 0,
+                        1, height_,
+                        GL_RGB, GL_UNSIGNED_BYTE,
+                        colBuf_.data());
+        writeCol_ = (writeCol_ + 1) % width_;
+        scrollAccum_ -= 1.0f;
+    }
 }
 
 void SpectrogramVisualizer::render()
@@ -142,6 +146,17 @@ void SpectrogramVisualizer::render()
         if (sy < 0 || sy >= height_) continue;
         textRenderer_.draw(lbl.label, 3, sy, lr, lg, lb, scale);
     }
+}
+
+void SpectrogramVisualizer::setParam(std::string_view key, float value)
+{
+    if (key == "scroll_speed")
+        scrollSpeed_ = std::clamp(value, 0.5f, 4.0f);
+}
+
+nlohmann::json SpectrogramVisualizer::getParams() const
+{
+    return { {"scroll_speed", scrollSpeed_} };
 }
 
 SpectrogramVisualizer::~SpectrogramVisualizer() = default;
