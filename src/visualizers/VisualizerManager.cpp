@@ -1,6 +1,16 @@
 #include "VisualizerManager.h"
 #include <cctype>
 
+namespace {
+std::string normalizeVisualizerKey(std::string_view name)
+{
+    std::string key(name);
+    for (char& c : key)
+        c = (c == ' ') ? '_' : static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+    return key;
+}
+} // namespace
+
 void VisualizerManager::registerVisualizer(std::unique_ptr<Visualizer> vis) {
     visualizers_.push_back(std::move(vis));
 }
@@ -38,8 +48,14 @@ std::string_view VisualizerManager::activeName() const {
 void VisualizerManager::setParam(std::string_view visName,
                                   std::string_view key, float value)
 {
-    for (auto& v : visualizers_)
-        if (v->name() == visName) { v->setParam(key, value); return; }
+    const std::string normalized = normalizeVisualizerKey(visName);
+    for (auto& v : visualizers_) {
+        if (normalizeVisualizerKey(v->name()) == normalized) {
+            v->setParam(key, value);
+        }
+        if (normalizeVisualizerKey(v->name()) == "quad")
+            v->setParam(key, value);
+    }
 }
 
 void VisualizerManager::setColorScheme(const VisualizerColorScheme& scheme)
@@ -55,10 +71,7 @@ nlohmann::json VisualizerManager::getAllParams() const
         auto params = v->getParams();
         if (!params.empty()) {
             // Build JSON key: visualizer name lowercased with spaces -> underscores
-            std::string key(v->name());
-            for (char& c : key)
-                c = (c == ' ') ? '_' : static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
-            result[key] = params;
+            result[normalizeVisualizerKey(v->name())] = params;
         }
     }
     return result;

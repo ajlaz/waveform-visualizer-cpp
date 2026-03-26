@@ -25,6 +25,7 @@ public:
     void onResize(int w, int h) override;
     void update(const AnalysisFrame& frame) override;
     void render()               override;
+    void setParam(std::string_view key, float value) override;
 
     void setColorScheme(const VisualizerColorScheme& scheme) override;
 

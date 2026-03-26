@@ -16,7 +16,7 @@ public:
     bool init(const std::string &shaderDir, const VisualizerColorScheme &scheme,
               int texSize = 512);
 
-    std::string_view name() const override { return "StereoImager"; }
+    std::string_view name() const override { return "Stereo Imager"; }
     void onResize(int w, int h) override;
     void update(const AnalysisFrame &frame) override;
     void render() override;
@@ -42,4 +42,5 @@ private:
     float decay_      = 0.96f;
     float brightness_ = 0.08f;
     float scale_      = 0.85f;
+    float edgeSoften_ = 0.0f;
 };

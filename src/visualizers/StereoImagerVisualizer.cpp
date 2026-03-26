@@ -52,8 +52,16 @@ void StereoImagerVisualizer::update(const AnalysisFrame &frame)
     for (size_t i = 0; i < n; ++i) {
         const float L    = frame.samplesL[i];
         const float R    = frame.samplesR[i];
-        const float side = (L - R) * 0.5f;
-        const float mid  = (L + R) * 0.5f;
+        float side = (L - R) * 0.5f;
+        float mid  = (L + R) * 0.5f;
+
+        float dotBrightness = brightness_;
+        if (edgeSoften_ > 0.0f) {
+            const float edge = std::max(std::abs(side), std::abs(mid)) / scale_;
+            const float t = std::clamp((edge - 0.85f) / 0.30f, 0.0f, 1.0f);
+            const float s = t * t * (3.0f - 2.0f * t);
+            dotBrightness *= (1.0f - edgeSoften_ * s);
+        }
 
         const float xf =  (side / scale_ * 0.5f + 0.5f) * (texSize_ - 1);
         const float yf = (-mid  / scale_ * 0.5f + 0.5f) * (texSize_ - 1);
@@ -64,10 +72,10 @@ void StereoImagerVisualizer::update(const AnalysisFrame &frame)
         const float fx = xf - x0;
         const float fy = yf - y0;
 
-        add(x0,     y0,     brightness_ * (1.0f - fx) * (1.0f - fy));
-        add(x0 + 1, y0,     brightness_ * fx          * (1.0f - fy));
-        add(x0,     y0 + 1, brightness_ * (1.0f - fx) * fy);
-        add(x0 + 1, y0 + 1, brightness_ * fx          * fy);
+        add(x0,     y0,     dotBrightness * (1.0f - fx) * (1.0f - fy));
+        add(x0 + 1, y0,     dotBrightness * fx          * (1.0f - fy));
+        add(x0,     y0 + 1, dotBrightness * (1.0f - fx) * fy);
+        add(x0 + 1, y0 + 1, dotBrightness * fx          * fy);
     }
 
     glBindTexture(GL_TEXTURE_2D, tex_);
@@ -105,11 +113,17 @@ void StereoImagerVisualizer::setParam(std::string_view key, float value)
     if      (key == "decay")      decay_      = std::clamp(value, 0.80f, 0.99f);
     else if (key == "brightness") brightness_ = std::clamp(value, 0.01f, 0.50f);
     else if (key == "scale")      scale_      = std::clamp(value, 0.10f, 2.00f);
+    else if (key == "edge_soften") edgeSoften_ = std::clamp(value, 0.0f, 1.0f);
 }
 
 nlohmann::json StereoImagerVisualizer::getParams() const
 {
-    return { {"decay", decay_}, {"brightness", brightness_}, {"scale", scale_} };
+    return {
+        {"decay", decay_},
+        {"brightness", brightness_},
+        {"scale", scale_},
+        {"edge_soften", edgeSoften_}
+    };
 }
 
 StereoImagerVisualizer::~StereoImagerVisualizer()

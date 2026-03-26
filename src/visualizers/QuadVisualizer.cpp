@@ -108,6 +108,12 @@ void QuadVisualizer::render() {
     glViewport(0, 0, width_, height_);
 }
 
+void QuadVisualizer::setParam(std::string_view key, float value)
+{
+    for (auto& c : cells_)
+        c.vis->setParam(key, value);
+}
+
 QuadVisualizer::~QuadVisualizer() {
     for (auto& c : cells_) {
         if (c.fbo) glDeleteFramebuffers(1, &c.fbo);
