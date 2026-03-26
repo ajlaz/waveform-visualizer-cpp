@@ -56,6 +56,10 @@ std::string ControlServer::listSchemes() const
 
 void ControlServer::setupRoutes()
 {
+    svr_->set_default_headers({
+        {"Access-Control-Allow-Origin", "*"}
+    });
+
     // Serve web UI from web/index.html relative to cwd
     svr_->Get("/", [](const httplib::Request&, httplib::Response& res) {
         std::ifstream f("web/index.html");
@@ -99,6 +103,7 @@ void ControlServer::setupRoutes()
     svr_->Post("/command", [this](const httplib::Request& req, httplib::Response& res) {
         auto j = nlohmann::json::parse(req.body, nullptr, false);
         if (j.is_discarded() || !j.contains("action")) {
+            res.status = 400;
             res.set_content("{\"error\":\"invalid json\"}", "application/json");
             return;
         }
@@ -116,6 +121,7 @@ void ControlServer::setupRoutes()
             cmd.strValue = j.value("value", "default");
         }
         else {
+            res.status = 400;
             res.set_content("{\"error\":\"unknown action\"}", "application/json");
             return;
         }
@@ -128,6 +134,7 @@ void ControlServer::setupRoutes()
         auto j = nlohmann::json::parse(req.body, nullptr, false);
         if (j.is_discarded() ||
             !j.contains("visualizer") || !j.contains("param") || !j.contains("value")) {
+            res.status = 400;
             res.set_content("{\"error\":\"invalid json\"}", "application/json");
             return;
         }
