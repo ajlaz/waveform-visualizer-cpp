@@ -77,15 +77,15 @@ void SpectrumVisualizer::update(const AnalysisFrame &frame)
     }
 
     // Asymmetric smoothing (tighter decay to reduce lingering)
-    static constexpr float ATTACK = 0.65f;
-    static constexpr float DECAY = 0.28f;
+    const float attack = smoothing_ * 0.65f;
+    const float decay  = smoothing_ * 0.28f;
     for (int x = 0; x < width_; ++x)
     {
         const float raw = pixelDb[x];
         if (raw > smoothed_[x])
-            smoothed_[x] += ATTACK * (raw - smoothed_[x]);
+            smoothed_[x] += attack * (raw - smoothed_[x]);
         else
-            smoothed_[x] += DECAY * (raw - smoothed_[x]);
+            smoothed_[x] += decay  * (raw - smoothed_[x]);
     }
 
     // Spatial smoothing for a more EQ-like curve (wider, two-pass)
@@ -177,6 +177,17 @@ void SpectrumVisualizer::render()
         textRenderer_.drawCentered(lbl.label, px, labelY,
                                    labelR, labelG, labelB, scale);
     }
+}
+
+void SpectrumVisualizer::setParam(std::string_view key, float value)
+{
+    if (key == "smoothing")
+        smoothing_ = std::clamp(value, 0.0f, 0.99f);
+}
+
+nlohmann::json SpectrumVisualizer::getParams() const
+{
+    return { {"smoothing", smoothing_} };
 }
 
 SpectrumVisualizer::~SpectrumVisualizer() = default;

@@ -19,6 +19,10 @@ public:
     void update(const AnalysisFrame &frame) override;
     void render() override;
 
+    void setParam(std::string_view key, float value) override;
+    nlohmann::json getParams() const override;
+    void setColorScheme(const VisualizerColorScheme& scheme) override { colors_ = scheme.spectrum; }
+
     ~SpectrumVisualizer() override;
 
 private:
@@ -32,4 +36,5 @@ private:
     std::vector<float> smoothed_; // per-pixel smoothed dB (width_ entries)
     int width_ = 0;
     int height_ = 0;
+    float smoothing_ = 0.8f;  // 0.0 = fast response, 0.99 = very slow
 };
