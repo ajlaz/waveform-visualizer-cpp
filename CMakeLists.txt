@@ -60,6 +60,7 @@ set(SOURCES
     src/main.cpp
     src/config/ColorSchemeLoader.cpp
     src/config/ColorSchemeValidation.cpp
+    src/config/AppConfig.cpp
     src/audio/AudioCapture.cpp
     src/audio/AudioAnalyzer.cpp
     src/render/ShaderProgram.cpp
@@ -75,6 +76,7 @@ set(SOURCES
     src/visualizers/WaveformVisualizer.cpp
     src/visualizers/StereoImagerVisualizer.cpp
     src/visualizers/QuadVisualizer.cpp
+    src/server/ControlServer.cpp
 )
 
 add_executable(visualizer ${SOURCES})
@@ -103,6 +105,7 @@ target_link_libraries(visualizer PRIVATE
     ${PORTAUDIO_LIBRARIES}
     ${FFTW3F_LIBRARIES}
     nlohmann_json::nlohmann_json
+    httplib::httplib
 )
 
 if(APPLE)
