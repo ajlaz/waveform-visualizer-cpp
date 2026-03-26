@@ -23,24 +23,24 @@ public:
 
     void setParam(std::string_view key, float value) override;
     nlohmann::json getParams() const override;
-    void setColorScheme(const VisualizerColorScheme& scheme) override { colors_ = scheme.stereoImager; }
+    void setColorScheme(const VisualizerColorScheme &scheme) override { colors_ = scheme.stereoImager; }
 
     ~StereoImagerVisualizer() override;
 
 private:
-    ShaderProgram  shader_;
+    ShaderProgram shader_;
     FullscreenQuad quad_;
-    GLuint         tex_  = 0;
+    GLuint tex_ = 0;
 
     StereoImagerColors colors_;
     std::vector<float> accum_;
 
-    int width_   = 0;
-    int height_  = 0;
+    int width_ = 0;
+    int height_ = 0;
     int texSize_ = 512;
 
-    float decay_      = 0.96f;
+    float decay_ = 0.96f;
     float brightness_ = 0.08f;
-    float scale_      = 0.85f;
+    float scale_ = 0.85f;
     float edgeSoften_ = 0.0f;
 };

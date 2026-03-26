@@ -11,30 +11,32 @@
 // blits all four onto the screen via a simple blit shader.
 // The sub-visualizers are owned here and are independent instances —
 // they share no state with the single-mode visualizers.
-class QuadVisualizer : public Visualizer {
+class QuadVisualizer : public Visualizer
+{
 public:
     // Pass pointers to fully-init'd sub-visualizers.
     // QuadVisualizer takes ownership.
-    bool init(const std::string& shaderDir,
+    bool init(const std::string &shaderDir,
               std::unique_ptr<Visualizer> topLeft,
               std::unique_ptr<Visualizer> topRight,
               std::unique_ptr<Visualizer> bottomLeft,
               std::unique_ptr<Visualizer> bottomRight);
 
-    std::string_view name()     const override { return "Quad"; }
+    std::string_view name() const override { return "Quad"; }
     void onResize(int w, int h) override;
-    void update(const AnalysisFrame& frame) override;
-    void render()               override;
+    void update(const AnalysisFrame &frame) override;
+    void render() override;
     void setParam(std::string_view key, float value) override;
 
-    void setColorScheme(const VisualizerColorScheme& scheme) override;
+    void setColorScheme(const VisualizerColorScheme &scheme) override;
 
     ~QuadVisualizer() override;
 
 private:
     void resizeCells(int fullW, int fullH);
 
-    struct Cell {
+    struct Cell
+    {
         std::unique_ptr<Visualizer> vis;
         GLuint fbo = 0;
         GLuint tex = 0;
@@ -43,11 +45,11 @@ private:
 
     std::array<Cell, 4> cells_;
 
-    ShaderProgram  blitShader_;
+    ShaderProgram blitShader_;
     FullscreenQuad quad_;
 
-    int width_  = 0;
+    int width_ = 0;
     int height_ = 0;
-    int qw_     = 0;
-    int qh_     = 0;
+    int qw_ = 0;
+    int qh_ = 0;
 };

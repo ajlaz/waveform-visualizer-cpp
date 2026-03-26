@@ -1,7 +1,7 @@
 #include "QuadVisualizer.h"
 #include <cstring>
 
-bool QuadVisualizer::init(const std::string& shaderDir,
+bool QuadVisualizer::init(const std::string &shaderDir,
                           std::unique_ptr<Visualizer> topLeft,
                           std::unique_ptr<Visualizer> topRight,
                           std::unique_ptr<Visualizer> bottomLeft,
@@ -21,17 +21,31 @@ bool QuadVisualizer::init(const std::string& shaderDir,
     return true;
 }
 
-void QuadVisualizer::resizeCells(int fullW, int fullH) {
-    qw_ = fullW  / 2;
-    qh_ = fullH  / 2;
+void QuadVisualizer::resizeCells(int fullW, int fullH)
+{
+    qw_ = fullW / 2;
+    qh_ = fullH / 2;
 
-    for (int i = 0; i < 4; ++i) {
-        auto& c = cells_[i];
+    for (int i = 0; i < 4; ++i)
+    {
+        auto &c = cells_[i];
 
         // Destroy old resources
-        if (c.fbo) { glDeleteFramebuffers(1, &c.fbo);  c.fbo = 0; }
-        if (c.tex) { glDeleteTextures(1, &c.tex);       c.tex = 0; }
-        if (c.rbo) { glDeleteRenderbuffers(1, &c.rbo);  c.rbo = 0; }
+        if (c.fbo)
+        {
+            glDeleteFramebuffers(1, &c.fbo);
+            c.fbo = 0;
+        }
+        if (c.tex)
+        {
+            glDeleteTextures(1, &c.tex);
+            c.tex = 0;
+        }
+        if (c.rbo)
+        {
+            glDeleteRenderbuffers(1, &c.rbo);
+            c.rbo = 0;
+        }
 
         // Create FBO + colour texture + depth RBO
         glGenFramebuffers(1, &c.fbo);
@@ -58,24 +72,28 @@ void QuadVisualizer::resizeCells(int fullW, int fullH) {
     }
 }
 
-void QuadVisualizer::onResize(int w, int h) {
-    width_  = w;
+void QuadVisualizer::onResize(int w, int h)
+{
+    width_ = w;
     height_ = h;
     resizeCells(w, h);
 }
 
-void QuadVisualizer::update(const AnalysisFrame& frame) {
-    for (auto& c : cells_)
+void QuadVisualizer::update(const AnalysisFrame &frame)
+{
+    for (auto &c : cells_)
         c.vis->update(frame);
 }
 
-void QuadVisualizer::render() {
+void QuadVisualizer::render()
+{
     // Save the currently bound FBO (the scene FBO set by Renderer::beginFrame)
     GLint prevFBO = 0;
     glGetIntegerv(GL_FRAMEBUFFER_BINDING, &prevFBO);
 
     // Render each sub-vis into its own FBO
-    for (int i = 0; i < 4; ++i) {
+    for (int i = 0; i < 4; ++i)
+    {
         glBindFramebuffer(GL_FRAMEBUFFER, cells_[i].fbo);
         glViewport(0, 0, qw_, qh_);
         glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
@@ -88,15 +106,19 @@ void QuadVisualizer::render() {
     blitShader_.use();
 
     // Each quadrant: use glViewport to place the blit quad in the right screen region
-    struct Quad { int x, y; };
+    struct Quad
+    {
+        int x, y;
+    };
     Quad positions[4] = {
-        {0,    qh_},   // top-left
-        {qw_,  qh_},   // top-right
-        {0,    0},     // bottom-left
-        {qw_,  0},     // bottom-right
+        {0, qh_},   // top-left
+        {qw_, qh_}, // top-right
+        {0, 0},     // bottom-left
+        {qw_, 0},   // bottom-right
     };
 
-    for (int i = 0; i < 4; ++i) {
+    for (int i = 0; i < 4; ++i)
+    {
         glViewport(positions[i].x, positions[i].y, qw_, qh_);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, cells_[i].tex);
@@ -110,20 +132,25 @@ void QuadVisualizer::render() {
 
 void QuadVisualizer::setParam(std::string_view key, float value)
 {
-    for (auto& c : cells_)
+    for (auto &c : cells_)
         c.vis->setParam(key, value);
 }
 
-QuadVisualizer::~QuadVisualizer() {
-    for (auto& c : cells_) {
-        if (c.fbo) glDeleteFramebuffers(1, &c.fbo);
-        if (c.tex) glDeleteTextures(1, &c.tex);
-        if (c.rbo) glDeleteRenderbuffers(1, &c.rbo);
+QuadVisualizer::~QuadVisualizer()
+{
+    for (auto &c : cells_)
+    {
+        if (c.fbo)
+            glDeleteFramebuffers(1, &c.fbo);
+        if (c.tex)
+            glDeleteTextures(1, &c.tex);
+        if (c.rbo)
+            glDeleteRenderbuffers(1, &c.rbo);
     }
 }
 
-void QuadVisualizer::setColorScheme(const VisualizerColorScheme& scheme)
+void QuadVisualizer::setColorScheme(const VisualizerColorScheme &scheme)
 {
-    for (auto& c : cells_)
+    for (auto &c : cells_)
         c.vis->setColorScheme(scheme);
 }

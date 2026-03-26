@@ -1,56 +1,71 @@
 #include "VisualizerManager.h"
 #include <cctype>
 
-namespace {
-std::string normalizeVisualizerKey(std::string_view name)
+namespace
 {
-    std::string key(name);
-    for (char& c : key)
-        c = (c == ' ') ? '_' : static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
-    return key;
-}
+    std::string normalizeVisualizerKey(std::string_view name)
+    {
+        std::string key(name);
+        for (char &c : key)
+            c = (c == ' ') ? '_' : static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+        return key;
+    }
 } // namespace
 
-void VisualizerManager::registerVisualizer(std::unique_ptr<Visualizer> vis) {
+void VisualizerManager::registerVisualizer(std::unique_ptr<Visualizer> vis)
+{
     visualizers_.push_back(std::move(vis));
 }
 
-void VisualizerManager::cycleNext() {
-    if (visualizers_.empty()) return;
+void VisualizerManager::cycleNext()
+{
+    if (visualizers_.empty())
+        return;
     activeIdx_ = (activeIdx_ + 1) % visualizers_.size();
 }
 
-void VisualizerManager::cyclePrev() {
-    if (visualizers_.empty()) return;
+void VisualizerManager::cyclePrev()
+{
+    if (visualizers_.empty())
+        return;
     activeIdx_ = (activeIdx_ + visualizers_.size() - 1) % visualizers_.size();
 }
 
-void VisualizerManager::onResize(int width, int height) {
-    for (auto& v : visualizers_)
+void VisualizerManager::onResize(int width, int height)
+{
+    for (auto &v : visualizers_)
         v->onResize(width, height);
 }
 
-void VisualizerManager::update(const AnalysisFrame& frame) {
-    if (visualizers_.empty()) return;
+void VisualizerManager::update(const AnalysisFrame &frame)
+{
+    if (visualizers_.empty())
+        return;
     visualizers_[activeIdx_]->update(frame);
 }
 
-void VisualizerManager::render() {
-    if (visualizers_.empty()) return;
+void VisualizerManager::render()
+{
+    if (visualizers_.empty())
+        return;
     visualizers_[activeIdx_]->render();
 }
 
-std::string_view VisualizerManager::activeName() const {
-    if (visualizers_.empty()) return "none";
+std::string_view VisualizerManager::activeName() const
+{
+    if (visualizers_.empty())
+        return "none";
     return visualizers_[activeIdx_]->name();
 }
 
 void VisualizerManager::setParam(std::string_view visName,
-                                  std::string_view key, float value)
+                                 std::string_view key, float value)
 {
     const std::string normalized = normalizeVisualizerKey(visName);
-    for (auto& v : visualizers_) {
-        if (normalizeVisualizerKey(v->name()) == normalized) {
+    for (auto &v : visualizers_)
+    {
+        if (normalizeVisualizerKey(v->name()) == normalized)
+        {
             v->setParam(key, value);
         }
         if (normalizeVisualizerKey(v->name()) == "quad")
@@ -58,18 +73,20 @@ void VisualizerManager::setParam(std::string_view visName,
     }
 }
 
-void VisualizerManager::setColorScheme(const VisualizerColorScheme& scheme)
+void VisualizerManager::setColorScheme(const VisualizerColorScheme &scheme)
 {
-    for (auto& v : visualizers_)
+    for (auto &v : visualizers_)
         v->setColorScheme(scheme);
 }
 
 nlohmann::json VisualizerManager::getAllParams() const
 {
     nlohmann::json result = nlohmann::json::object();
-    for (const auto& v : visualizers_) {
+    for (const auto &v : visualizers_)
+    {
         auto params = v->getParams();
-        if (!params.empty()) {
+        if (!params.empty())
+        {
             // Build JSON key: visualizer name lowercased with spaces -> underscores
             result[normalizeVisualizerKey(v->name())] = params;
         }
