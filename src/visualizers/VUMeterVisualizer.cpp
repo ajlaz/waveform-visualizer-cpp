@@ -41,7 +41,8 @@ void VUMeterVisualizer::update(const AnalysisFrame &frame)
     {
         peakDecay_ += 1.0f / 60.0f;  // accumulates time in seconds
         if (peakDecay_ > peakHold_) {
-            peakDb_ -= (peakDecay_ - peakHold_) * 0.4f;
+            peakDecay_ = peakHold_;   // reset so decay rate stays constant (1/60 * 0.4 dB/frame)
+            peakDb_ -= (1.0f / 60.0f) * 0.4f;
             peakDb_  = std::max(peakDb_, DB_FLOOR);
         }
     }
