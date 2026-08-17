@@ -50,13 +50,13 @@ bool Renderer::init(int width, int height, const std::string &title)
     }
 
 #ifndef __APPLE__
-    // GLEW must be initialised after a valid context exists.
-    glewExperimental = GL_TRUE;
-    GLenum glewErr = glewInit();
-    if (glewErr != GLEW_OK)
+    // glad must be initialised after a valid context exists. Unlike GLEW,
+    // glad loads purely through SDL's proc-address resolver, so it works
+    // correctly under EGL-only contexts (kmsdrm) as well as GLX/desktop.
+    int gladVersion = gladLoadGL(reinterpret_cast<GLADloadfunc>(SDL_GL_GetProcAddress));
+    if (gladVersion == 0)
     {
-        std::cerr << "[Renderer] glewInit failed: "
-                  << reinterpret_cast<const char *>(glewGetErrorString(glewErr)) << "\n";
+        std::cerr << "[Renderer] gladLoadGL failed to load OpenGL functions\n";
         SDL_GL_DeleteContext(context_);
         SDL_DestroyWindow(window_);
         context_ = nullptr;
@@ -64,8 +64,6 @@ bool Renderer::init(int width, int height, const std::string &title)
         SDL_Quit();
         return false;
     }
-    // GLEW sometimes generates a benign GL_INVALID_ENUM on init; clear it.
-    glGetError();
 #endif
 
     // Alpha blending for all visualizer passes.

@@ -49,9 +49,9 @@ list(REMOVE_DUPLICATES FFTW3F_LIBRARIES)
 
 # OpenGL + loader
 find_package(OpenGL REQUIRED)
-if(NOT APPLE)
-    find_package(GLEW REQUIRED)
-endif()
+# On non-Apple platforms we use a vendored glad loader (third_party/glad)
+# instead of GLEW: GLEW's extension detection assumes a GLX context and
+# fails under EGL-only contexts (SDL's kmsdrm backend on a headless Pi).
 
 # ---------------------------------------------------------------------------
 # Sources
@@ -79,6 +79,10 @@ set(SOURCES
     src/server/ControlServer.cpp
 )
 
+if(NOT APPLE)
+    list(APPEND SOURCES third_party/glad/src/gl.c)
+endif()
+
 add_executable(visualizer ${SOURCES})
 
 # ---------------------------------------------------------------------------
@@ -90,6 +94,10 @@ target_include_directories(visualizer PRIVATE
     ${PORTAUDIO_INCLUDE_DIRS}
     ${FFTW3F_INCLUDE_DIRS}
 )
+
+if(NOT APPLE)
+    target_include_directories(visualizer PRIVATE third_party/glad/include)
+endif()
 
 target_link_directories(visualizer PRIVATE
     ${PORTAUDIO_LIBRARY_DIRS}
@@ -118,7 +126,7 @@ if(APPLE)
         "-framework CoreServices"
     )
 else()
-    target_link_libraries(visualizer PRIVATE GLEW::GLEW)
+    target_link_libraries(visualizer PRIVATE ${CMAKE_DL_LIBS})
 endif()
 
 # ---------------------------------------------------------------------------

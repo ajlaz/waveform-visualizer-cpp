@@ -6,7 +6,6 @@ RUN apt-get update && apt-get install -y \
     libportaudio2 \
     portaudio19-dev \
     libfftw3-dev \
-    libglew-dev \
     libgl1-mesa-dev \
     cmake \
     build-essential \
@@ -28,7 +27,6 @@ RUN apt-get update && apt-get install -y \
     libportaudio2 \
     libfftw3-double3 \
     libfftw3-single3 \
-    libglew2.2 \
     libgl1-mesa-glx \
     && rm -rf /var/lib/apt/lists/*
 
